@@ -1,18 +1,67 @@
 import base64
 import io
-from CNN import CNN
+from torch import nn, optim
 import torch
 import torchvision.transforms as transforms
 from PIL import Image
 from flask import Flask, jsonify, request
 from flask_cors import *
 
+
+class CNN(torch.nn.Module):
+    def __init__(self):
+        # 先调用父类的__init__()方法
+        super().__init__()
+        # ORIGINAL-----batch_size * channels * width * height = 64*3*100*38----- #
+        self.net = torch.nn.Sequential(
+            # 64*3*180*60
+            nn.Conv2d(3, 16, kernel_size=3, padding=(1, 1)),
+            nn.MaxPool2d(kernel_size=2, stride=2),
+            nn.BatchNorm2d(16),
+            nn.ReLU(),
+            # batch_size * channels * width * height = 64*16*50*19
+            # 64*16*90*30
+            nn.Conv2d(16, 64, kernel_size=3, padding=(1, 1)),
+            nn.MaxPool2d(kernel_size=2, stride=2),
+            nn.BatchNorm2d(64),
+            nn.ReLU(),
+            # batch_size * channels * width * height = 64*64*25*9
+            # 64*64*45*15
+
+            nn.Conv2d(64, 256, kernel_size=3, padding=(1, 1)),
+            nn.MaxPool2d(kernel_size=2, stride=2),
+            nn.BatchNorm2d(256),
+            nn.ReLU(),
+            # 64*256*22*7
+
+            nn.Conv2d(256, 512, kernel_size=3, padding=(1, 1)),
+            nn.MaxPool2d(kernel_size=2, stride=2),
+            nn.BatchNorm2d(512),
+            nn.ReLU()
+            # batch_size * channels * width * height = 64*512*12*4
+            # 64*512*11*3
+        )
+
+        self.fc = nn.Sequential(
+            # 这里只传入channels*width*height
+            # 全连接层得到的应该是最终的分类数，验证码每个位置有四种可能，符合加法原理
+            nn.Linear(512 * 11 * 3, 36 * 4)
+        )
+
+    def forward(self, x):
+        # 先进行卷积和池化
+        x = self.net(x)
+        # 将tensor展成一维
+        x = x.view(-1, 512 * 11 * 3)
+        # 全连接
+        x = self.fc(x)
+        return x
+
 app = Flask(__name__)  # 固定写法
 CORS(app)
 model = torch.load('./111.pth')
 model.eval()
 model.cuda()
-
 
 def distinguish(image):
     if image.mode != 'RGB':

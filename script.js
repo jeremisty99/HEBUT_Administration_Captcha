@@ -1,17 +1,17 @@
 // ==UserScript==
-// @name         教务处验证码填写
-// @namespace    http://tampermonkey.net/
-// @version      0.1
-// @description  try to take over the world!
-// @author       You
+// @name         URP教务处验证码自动填写
+// @namespace    JerryWang
+// @version      0.25
+// @description  教务处验证码自动识别填写(理论支持所有新版URP教务系统)
+// @author       JerryWang
 // @match        http://jwxs.hebut.edu.cn/login
+// @match        http://zhjw.scu.edu.cn/login
 // @grant        none
-// @require      https://lib.baomitu.com/jquery/1.12.4/jquery.min.js
+// @require      http://libs.baidu.com/jquery/2.0.0/jquery.min.js
 // ==/UserScript==
-
-(function () {
+$("a").click(function(){
     setTimeout(function () {
-        img = $("#captchaImg")[0];
+        var img = $("#captchaImg")[0];
         var canvas = document.createElement("canvas");
         canvas.width = img.naturalWidth;
         canvas.height = img.naturalHeight;
@@ -19,9 +19,10 @@
         ctx.drawImage(img, 0, 0, img.naturalWidth, img.naturalHeight);
         var dataURL = canvas.toDataURL("image/png");
         $.ajax({
-            url: "http://192.168.123.100:5005/predict",
+            url: "http://81.70.144.40:5005/predict",
             dataType: "json",
             type: "get",
+            async:false,
             data: {
                 data: dataURL
             },
@@ -30,5 +31,30 @@
                 $("#input_checkcode")[0].value = res.captcha
             }
         });
-    }, 1000);
+    }, 200);
+});
+(function () {
+    $("#formFooter")[0].innerHTML += "<br><span id=\"clicked\" style=\"color: #7b0003;\">如验证码识别错误 可点击图片重新识别</span>";
+    setTimeout(function () {
+        var img = $("#captchaImg")[0];
+        var canvas = document.createElement("canvas");
+        canvas.width = img.naturalWidth;
+        canvas.height = img.naturalHeight;
+        var ctx = canvas.getContext("2d");
+        ctx.drawImage(img, 0, 0, img.naturalWidth, img.naturalHeight);
+        var dataURL = canvas.toDataURL("image/png");
+        $.ajax({
+            url: "http://81.70.144.40:5005/predict",
+            dataType: "json",
+            type: "get",
+            async:false,
+            data: {
+                data: dataURL
+            },
+            success: function (res) {
+                console.log(res.captcha)
+                $("#input_checkcode")[0].value = res.captcha
+            }
+        });
+    }, 200);
 })();
